@@ -10,16 +10,14 @@ exports.Models = {
 };
 
 exports.connectDatabase = async () => {
-  mongoose.connect(connectionString, {
+  await mongoose.connect(connectionString, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });
+  console.info("connection connected");
 
   const db = mongoose.connection;
   db.on("error", console.error.bind(console, "connection error:"));
-  db.once("open", function () {
-    console.info("connection connected");
-  });
 
   //Models require
   require("./User.model");
@@ -27,5 +25,5 @@ exports.connectDatabase = async () => {
   require("./TopicComment.model");
   require("./RefreshToken.model");
 
-  return await db;
+  return db;
 };

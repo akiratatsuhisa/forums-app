@@ -18,14 +18,14 @@ const { validateJwtToken } = require("./services/User.service");
 (async (schema) => {
   const dbContext = await connectDatabase();
 
-  const PORT = 4000;
+  const PORT = process.env.PORT || 4000;
   const app = express();
   const httpServer = createServer(app);
 
-  // max request 2gb
-  app.use(express.json({ limit: "2gb" }));
+  app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
+
   // static folder /public
   app.use(express.static(path.join(__dirname, "public")));
 
