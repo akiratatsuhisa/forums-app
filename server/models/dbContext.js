@@ -4,9 +4,10 @@ const connectionString = process.env.CONNECTION_STRING;
 
 exports.Models = {
   USER: "User",
+  REFRESH_TOKEN: "RefreshToken",
+  FORUM: "Forum",
   TOPIC: "Topic",
   TOPIC_COMMENT: "TopicComment",
-  REFRESH_TOKEN: "RefreshToken",
 };
 
 exports.connectDatabase = async () => {
@@ -21,9 +22,10 @@ exports.connectDatabase = async () => {
 
   //Models require
   require("./User.model");
+  require("./RefreshToken.model");
+  require("./Forum.model");
   require("./Topic.model");
   require("./TopicComment.model");
-  require("./RefreshToken.model");
 
   return db;
 };

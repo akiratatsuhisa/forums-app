@@ -1,8 +1,16 @@
-const { gql } = require("apollo-server-express");
+const {
+  gql,
+  AuthenticationError,
+  ForbiddenError,
+} = require("apollo-server-express");
 const Topic = require("../models/Topic.model");
 const mongoose = require("mongoose");
 const { Models } = require("../models/dbContext");
-const { ownedByUser, authorize } = require("../services/Auth.service");
+const {
+  isOwnedByUser,
+  isInRole,
+  isAuthenticated,
+} = require("../services/Auth.service");
 
 const { ObjectId } = mongoose.Types;
 
@@ -15,6 +23,7 @@ exports.topicSchema = gql`
   type Mutation {
     createTopic(input: CreateTopicInput!): Topic
     updateTopic(id: ID!, input: UpdateTopicInput!): Topic
+    updateTopicStatus(id: ID!, input: UpdateTopicStatusInput): Topic
     deleteTopic(id: ID!): Topic
   }
 
@@ -22,6 +31,7 @@ exports.topicSchema = gql`
     title: String!
     content: String!
     tags: [String]!
+    forumId: ID!
   }
 
   input UpdateTopicInput {
@@ -30,11 +40,17 @@ exports.topicSchema = gql`
     tags: [String]!
   }
 
+  input UpdateTopicStatusInput {
+    status: Int!
+  }
+
   type Topic {
     id: ID
     title: String
     content: String
     tags: [String]
+    forumId: ID
+    forum: Forum
     userId: ID
     user: User
     createdAt: Float
@@ -64,7 +80,8 @@ exports.topicResolvers = {
   Mutation: {
     createTopic: async (_, { input }, { user }) => {
       try {
-        authorize(user);
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
 
         const result = new Topic({
           ...input,
@@ -78,7 +95,29 @@ exports.topicResolvers = {
     },
     updateTopic: async (_, { id, input }, { user }) => {
       try {
-        await ownedByUser(user, { name: Models.TOPIC, id });
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
+        if (
+          !(await isOwnedByUser(user, {
+            name: Models.TOPIC,
+            id: revokeToken.id,
+          }))
+        )
+          throw new ForbiddenError("Access Denied.");
+
+        const result = await Topic.findByIdAndUpdate(id, { ...input });
+        return result;
+      } catch (error) {
+        console.log(error);
+        throw error;
+      }
+    },
+    updateTopicStatus: async (_, { id, input }, { user }) => {
+      try {
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
+        if (isInRole("admin") || isInRole("moderator"))
+          throw new ForbiddenError("Access Denied.");
 
         const result = await Topic.findByIdAndUpdate(id, { ...input });
         return result;
@@ -89,7 +128,15 @@ exports.topicResolvers = {
     },
     deleteTopic: async (_, { id }, { user }) => {
       try {
-        await ownedByUser(user, { name: Models.TOPIC, id });
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
+        if (
+          !(await isOwnedByUser(user, {
+            name: Models.TOPIC,
+            id: revokeToken.id,
+          }))
+        )
+          throw new ForbiddenError("Access Denied.");
 
         const result = await Topic.findByIdAndDelete(id);
         return result;

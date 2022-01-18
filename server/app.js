@@ -35,7 +35,7 @@ const { validateJwtToken } = require("./services/User.service");
   const server = new ApolloServer({
     schema,
     context: ({ req, res }) => {
-      //get auth info from http headers middleware client/src/index.js
+      //get auth info from http headers middleware client/src/Services/graphql.js
       const token = req.headers.authorization;
       const user = validateJwtToken(token);
 
@@ -55,7 +55,7 @@ const { validateJwtToken } = require("./services/User.service");
       execute,
       subscribe,
       onOperation: (message, params) => {
-        //get auth info from websocket middlewware client/src/index.js
+        //get auth info from http headers middleware client/src/Services/graphql.js
         const token = message.payload.context.authorization;
         const user = validateJwtToken(token);
 

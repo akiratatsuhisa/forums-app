@@ -1,0 +1,17 @@
+@import "~bootstrap/scss/functions";
+
+$primary: #6610f2;
+$secondary: #0d6efd;
+$thirdary: #20cb98;
+$enable-shadows: true;
+$enable-negative-margins: true;
+
+@import "~bootstrap/scss/variables";
+
+$custom-colors: (
+  "thirdary": $thirdary,
+);
+
+$theme-colors: map-merge($custom-colors, $theme-colors);
+
+@import "~bootstrap/scss/bootstrap";

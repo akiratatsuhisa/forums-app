@@ -34,8 +34,8 @@ schema.virtual("topics", {
   foreignField: "_id",
 });
 
-schema.statics.hashPassword = async function (password) {
-  return await bcrypt.hash(password, 10);
+schema.methods.hashPassword = async function (password) {
+  this.password = await bcrypt.hash(password, 10);
 };
 
 schema.methods.comparePassword = async function (password) {

@@ -3,6 +3,7 @@ const { withFilter } = require("graphql-subscriptions");
 const { makeExecutableSchema } = require("@graphql-tools/schema");
 
 const { userSchema, userResolvers } = require("./user");
+const { forumSchema, forumResolvers } = require("./forum");
 const { topicSchema, topicResolvers } = require("./topic");
 const { topicCommentSchema, topicCommentResolvers } = require("./topicComment");
 
@@ -20,10 +21,17 @@ const defaultResolvers = {
   },
 };
 
-const typeDefs = [defaultSchema, userSchema, topicSchema, topicCommentSchema];
+const typeDefs = [
+  defaultSchema,
+  userSchema,
+  forumSchema,
+  topicSchema,
+  topicCommentSchema,
+];
 const resolvers = [
   defaultResolvers,
   userResolvers,
+  forumResolvers,
   topicResolvers,
   topicCommentResolvers,
 ];

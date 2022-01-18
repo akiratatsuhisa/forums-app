@@ -1,18 +1,24 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import "./index.css";
+import "./index.scss";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 import reportWebVitals from "./reportWebVitals";
 import { ApolloProvider } from "@apollo/client";
 import App from "./App";
 import { apolloClient } from "./Services/graphql";
+import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./Context/AuthContext";
 
 ReactDOM.render(
   <React.StrictMode>
     <ApolloProvider client={apolloClient}>
-      <App />
+      <AuthProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AuthProvider>
     </ApolloProvider>
   </React.StrictMode>,
   document.getElementById("root")

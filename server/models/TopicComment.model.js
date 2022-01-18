@@ -5,7 +5,8 @@ const { Models } = require("./dbContext");
 
 const schema = new Schema(
   {
-    content: String,
+    content: { type: String, required: true },
+    status: { type: Number, required: true, default: 0 },
     topic_id: { type: Schema.Types.ObjectId, alias: "topicId" },
     user_id: {
       type: Schema.Types.ObjectId,

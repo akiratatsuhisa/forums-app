@@ -1,10 +1,18 @@
-const { gql } = require("apollo-server-express");
+const {
+  gql,
+  AuthenticationError,
+  ForbiddenError,
+} = require("apollo-server-express");
 const { withFilter } = require("graphql-subscriptions");
 const mongoose = require("mongoose");
 
 const TopicComment = require("../models/TopicComment.model");
 const { Models } = require("../models/dbContext");
-const { ownedByUser, authorize } = require("../services/Auth.service");
+const {
+  isOwnedByUser,
+  isInRole,
+  isAuthenticated,
+} = require("../services/Auth.service");
 
 const { ObjectId } = mongoose.Types;
 
@@ -21,6 +29,10 @@ exports.topicCommentSchema = gql`
   type Mutation {
     createTopicComment(input: CreateTopicCommentInput!): TopicComment
     updateTopicComment(id: ID!, input: UpdateTopicCommentInput!): TopicComment
+    updateTopicCommentStatus(
+      id: ID!
+      input: UpdateTopicCommentStatusInput!
+    ): TopicComment
     deleteTopicComment(id: ID!): TopicComment
   }
 
@@ -39,6 +51,11 @@ exports.topicCommentSchema = gql`
   }
 
   input UpdateTopicCommentInput {
+    content: String!
+    topicId: ID!
+  }
+
+  input UpdateTopicCommentStatusInput {
     content: String!
     topicId: ID!
   }
@@ -86,7 +103,8 @@ exports.topicCommentResolvers = {
   Mutation: {
     createTopicComment: async (_, { input }, { user, pubsub }) => {
       try {
-        authorize(user);
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
 
         const result = await (
           await new TopicComment({
@@ -104,7 +122,30 @@ exports.topicCommentResolvers = {
     },
     updateTopicComment: async (_, { id, input }, { user }) => {
       try {
-        await ownedByUser(user, { name: Models.TOPIC_COMMENT, id });
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
+        if (
+          !(await isOwnedByUser(user, {
+            name: Models.TOPIC_COMMENT,
+            id: revokeToken.id,
+          }))
+        )
+          throw new ForbiddenError("Access Denied.");
+
+        const result = await TopicComment.findByIdAndUpdate(id, {
+          ...input,
+        }).populate("topic");
+        return result;
+      } catch (error) {
+        throw error;
+      }
+    },
+    updateTopicCommentStatus: async (_, { id, input }, { user }) => {
+      try {
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
+        if (isInRole("admin") || isInRole("moderator"))
+          throw new ForbiddenError("Access Denied.");
 
         const result = await TopicComment.findByIdAndUpdate(id, {
           ...input,
@@ -116,7 +157,15 @@ exports.topicCommentResolvers = {
     },
     deleteTopicComment: async (_, { id }, { user, pubsub }) => {
       try {
-        await ownedByUser(user, { name: Models.TOPIC_COMMENT, id });
+        if (!isAuthenticated(user))
+          throw new AuthenticationError("Unauthenticated");
+        if (
+          !(await isOwnedByUser(user, {
+            name: Models.TOPIC_COMMENT,
+            id: revokeToken.id,
+          }))
+        )
+          throw new ForbiddenError("Access Denied.");
 
         const result = await TopicComment.findByIdAndDelete(id).populate(
           "topic"

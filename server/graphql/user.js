@@ -1,4 +1,8 @@
-const { gql, AuthenticationError } = require("apollo-server-express");
+const {
+  gql,
+  AuthenticationError,
+  ForbiddenError,
+} = require("apollo-server-express");
 const RefreshToken = require("../models/RefreshToken.model");
 const User = require("../models/User.model");
 const { Models } = require("../models/dbContext");
@@ -7,7 +11,7 @@ const {
   generateRefreshToken,
   revokeRefreshToken,
 } = require("../services/User.service");
-const { ownedByUser } = require("../services/Auth.service");
+const { isOwnedByUser } = require("../services/Auth.service");
 const { UserInputError } = require("apollo-server");
 
 exports.userSchema = gql`
@@ -111,7 +115,8 @@ exports.userResolvers = {
           familyName,
           roles: ["user"],
         });
-        user.password = await User.hashPassword(password);
+
+        await user.hashPassword(password);
         await user.save();
 
         const jwtToken = generateJwtToken(user);
@@ -139,14 +144,14 @@ exports.userResolvers = {
         )
           throw new UserInputError("Invalid token");
 
-        const user = await User.findById(revokeToken.userId);
-        if (!user) {
-          throw new Error("User is not exists.");
+        if (
+          !(await isOwnedByUser(user, {
+            name: Models.REFRESH_TOKEN,
+            id: revokeToken.id,
+          }))
+        ) {
+          throw new ForbiddenError("Access Denied.");
         }
-        await ownedByUser(user, {
-          name: Models.REFRESH_TOKEN,
-          id: revokeToken.id,
-        });
 
         const jwtToken = generateJwtToken(user);
         const refreshToken = await generateRefreshToken(user);
@@ -168,11 +173,15 @@ exports.userResolvers = {
           value: input.refreshToken,
         });
         if (!revokeToken) throw new UserInputError("Invalid token");
-        await ownedByUser(user, {
-          name: Models.REFRESH_TOKEN,
-          id: revokeToken.id,
-        });
 
+        if (
+          !(await isOwnedByUser(user, {
+            name: Models.REFRESH_TOKEN,
+            id: revokeToken.id,
+          }))
+        ) {
+          throw new ForbiddenError("Access Denied.");
+        }
         const result = await revokeRefreshToken(revokeToken.value);
 
         return {
