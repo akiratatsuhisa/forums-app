@@ -39,7 +39,7 @@ exports.validateJwtToken = (token) => {
   if (!token) return null;
   const tokenValue = token.split(" ")[1];
   try {
-    return jwt.verify(tokenValue, privateKey, { algorithm, audience, issuer });
+    return jwt.verify(tokenValue, privateKey, { audience, issuer });
   } catch (error) {
     console.error(error);
     return null;
